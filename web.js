@@ -4,11 +4,9 @@ var fs = require('fs');
 var app = express.createServer(express.logger());
 
 app.get('/', function(request, response) {
-    var out;
     fs.readFile('index.html', function(err,data){
 	if(err) throw err; 
-	out = data;
-	response.send('Trying to read index ' + out + ' printing data ' + data);
+	response.send('' +  data);
     });
 });
 
