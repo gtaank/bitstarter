@@ -5,7 +5,7 @@ var app = express.createServer(express.logger());
 
 app.get('/', function(request, response) {
     
-  response.send("Trying to read index.html " + (fs.readFile('index.html', function(err,data){if(err) throw err; return(" Reading from " + data);});));
+  response.send("Trying to read index.html " + (fs.readFile('index.html', function(err,data){if(err) throw err; data;}));
 });
 
 var port = process.env.PORT || 5000;
