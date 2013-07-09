@@ -27,17 +27,26 @@ var cheerio = require('cheerio');
 var HTMLFILE_DEFAULT = "index.html";
 var CHECKSFILE_DEFAULT = "checks.json";
 
-var assertFileExists = function(infile) {
+var sys = require('util'), rest = require('../node_modules/restler');
+
+var assertCheckFileExists = function(infile) {
     var instr = infile.toString();
-    if(!fs.existsSync(instr)) {
-        console.log("%s does not exist. Exiting.", instr);
+    if(!fs.existsSync(instr)) 
+	{
+         console.log("%s does not exist.", instr);
+
         process.exit(1); // http://nodejs.org/api/process.html#process_process_exit_code
     }
     return instr;
 };
 
-var cheerioHtmlFile = function(htmlfile) {
-    return cheerio.load(fs.readFileSync(htmlfile));
+var assertHTMLFileExists = function(infile) {
+    var instr = infile.toString();
+    if(!fs.existsSync(instr)) 
+	{
+         console.log("%s does not exist. shall try to download via restler library.", instr);
+        }
+    return instr;
 };
 
 var loadChecks = function(checksfile) {
@@ -45,14 +54,44 @@ var loadChecks = function(checksfile) {
 };
 
 var checkHtmlFile = function(htmlfile, checksfile) {
-    $ = cheerioHtmlFile(htmlfile);
     var checks = loadChecks(checksfile).sort();
     var out = {};
-    for(var ii in checks) {
-        var present = $(checks[ii]).length > 0;
-        out[checks[ii]] = present;
-    }
-    return out;
+
+    if(fs.existsSync(htmlfile)){
+//	console.log(cheerio.load(fs.readFileSync(htmlfile)));
+	$ = cheerio.load(fs.readFileSync(htmlfile));
+    	for(var ii in checks) {
+        	var present = $(checks[ii]).length > 0;
+        	out[checks[ii]] = present;
+    	}
+    	return out;
+     } 
+    else 
+	{
+	rest.get(htmlfile).on('complete', function(result) {	//http://gt-bitstarter.herokuapp.com/
+	if (result instanceof Error)
+	   	{
+		sys.puts('Error Downloading: ' + result.message);
+		   this.retry(2500); // try again after 5 sec
+		} 
+	   	else 
+	   	{
+	    	   //console.log('\nDispaying after cheerio load \n' + cheerio.load(result) + '\nafter converting to output.html \n');
+		   var outfile = "output.html";
+		   fs.writeFileSync(outfile, result);
+		   //console.log(cheerio.load(fs.readFileSync(outfile)));
+		   $ = cheerio.load(fs.readFileSync(outfile));  
+	    	   //$ =  cheerio.load(result);	  
+		   for(var ii in checks) {
+			var present = $(checks[ii]).length > 0;
+			out[checks[ii]] = present;
+		   }
+
+		   var outJson = JSON.stringify(out, null, 4);
+                   console.log(outJson);
+	   }
+        });		
+    } 	
 };
 
 var clone = function(fn) {
@@ -63,12 +102,16 @@ var clone = function(fn) {
 
 if(require.main == module) {
     program
-        .option('-c, --checks <check_file>', 'Path to checks.json', clone(assertFileExists), CHECKSFILE_DEFAULT)
-        .option('-f, --file <html_file>', 'Path to index.html', clone(assertFileExists), HTMLFILE_DEFAULT)
+        .option('-c, --checks <check_file>', 'Path to checks.json', clone(assertCheckFileExists), CHECKSFILE_DEFAULT)
+        .option('-f, --file <html_file>', 'Path to index.html', clone(assertHTMLFileExists), HTMLFILE_DEFAULT)
         .parse(process.argv);
-    var checkJson = checkHtmlFile(program.file, program.checks);
-    var outJson = JSON.stringify(checkJson, null, 4);
-    console.log(outJson);
+ 
+    if(fs.existsSync(program.file)){
+	var checkJson = checkHtmlFile(program.file, program.checks);
+	var outJson = JSON.stringify(checkJson, null, 4);
+        console.log(outJson);
+    }else 
+     	 checkHtmlFile(program.file, program.checks);	
 } else {
     exports.checkHtmlFile = checkHtmlFile;
 }
