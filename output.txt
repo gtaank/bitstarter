@@ -1,1 +1,1 @@
-https://raw.github.com/gtaank/bitstarter/a2ea1a26a635f506fc1fb5f777f62006e7775f4c/index.html
+https://github.com/gtaank/bitstarter/tree/staging
